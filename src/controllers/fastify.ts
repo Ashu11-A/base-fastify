@@ -2,8 +2,9 @@ import multipart from '@fastify/multipart'
 import { Authenticator } from '@fastify/passport'
 import SecureSession from '@fastify/secure-session'
 import websocket from '@fastify/websocket'
+import { execSync } from 'child_process'
 import fastify, { FastifyInstance } from 'fastify'
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 interface Options {
@@ -18,6 +19,11 @@ export class Fastify {
   init () {
     const server = fastify({ logger: true })
     const fastifyPassport = new Authenticator()
+
+    if (!existsSync(join(process.cwd(), 'secret-key'))) {
+      console.log('🔑 secret-key not found, generating with the command “npx @fastify/secure-session > secret-key”')
+      execSync('npx @fastify/secure-session > secret-key', { stdio: 'inherit' })
+    }
 
     server
       .register(multipart, {
