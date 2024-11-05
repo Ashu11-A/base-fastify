@@ -1,11 +1,18 @@
-import multipart from '@fastify/multipart'
+import { fastifyCookie } from '@fastify/cookie'
+import { fastifyMultipart } from '@fastify/multipart'
 import { Authenticator } from '@fastify/passport'
-import SecureSession from '@fastify/secure-session'
-import websocket from '@fastify/websocket'
-import { execSync } from 'child_process'
+import { fastifySession } from '@fastify/session'
+import { fastifyStatic } from '@fastify/static'
+import { fastifyWebsocket } from '@fastify/websocket'
 import fastify, { FastifyInstance } from 'fastify'
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+
+import { BearerStrategy } from '@/strategies/BearerStrategy.js'
+
+import { User } from '@/database/entity/User.js'
+import { storagePath } from '@/index.js'
+
+
+export const fastifyPassport = new Authenticator()
 
 interface Options {
   host: string
@@ -17,25 +24,57 @@ export class Fastify {
   constructor(public options: Options){}
 
   init () {
-    const server = fastify({ logger: true })
-    const fastifyPassport = new Authenticator()
+    const server = fastify({
+      logger: {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard', // Formato de data e hora
+            ignore: 'pid,hostname,reqId', // Ignorar campos desnecessários
+          },
+        },
+      },
+    })
+    
+    const cookieToken = process.env['COOKIE_TOKEN']
+    const sessionToken = process.env['SESSION_TOKEN']
 
-    if (!existsSync(join(process.cwd(), 'secret-key'))) {
-      console.log('🔑 secret-key not found, generating with the command “npx @fastify/secure-session > secret-key”')
-      execSync('npx @fastify/secure-session > secret-key', { stdio: 'inherit' })
-    }
+    if (cookieToken === undefined || sessionToken === undefined) throw new Error('Session token or cookie token are undefined')
 
     server
-      .register(multipart, {
-      // attachFieldsToBody: true,
+      .register(fastifyMultipart, {
         limits: {
-          fileSize: 1024 * 1024 * 10
+          fileSize: 1024 * 1024 * 10 // 10 Mb
         }
       })
-      .register(websocket)
-      .register(SecureSession, { key: readFileSync(join(process.cwd(), 'secret-key')) })
+      .register(fastifyStatic, {
+        root: storagePath,
+      })
+      .register(fastifyWebsocket)
+      .register(fastifyCookie, {
+        secret: cookieToken
+      })
+      .register(fastifySession, {
+        secret: sessionToken,
+        logLevel: 'debug',
+        cookie: {
+          path: '/',
+          maxAge: 60 * 60 * 24 * 7 // 7 dias
+        }
+      })
       .register(fastifyPassport.initialize())
-      .register(fastifyPassport.secureSession())
+    
+    fastifyPassport.registerUserSerializer<User, string>(async (user) => {
+      console.log('registerUserSerializer', user)
+      return user.uuid
+    })
+    fastifyPassport.registerUserDeserializer<string, User | null>(async (uuid) => {
+      console.log('registerUserDeserializer', uuid)
+      return await User.findOneBy({ uuid })
+    })
+    fastifyPassport.use('bearer', new BearerStrategy())
+
     Fastify.server = server
     return this
   }

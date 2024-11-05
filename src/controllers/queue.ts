@@ -1,17 +1,21 @@
-import QueueBull, { QueueOptions } from 'bull'
+import QueueBull, { QueueOptions, Queue as QueueType } from 'bull'
 
-export class Queue extends QueueBull {
+export class Queue<T> extends QueueBull<T> {
+  private queues: Record<string, QueueType> = {}
+
   constructor(queueName: string, opts?: QueueOptions) {
     super(queueName, {
       ...opts,
-      limiter: {
-        max: 50,
-        duration: 10000,
+      defaultJobOptions: {
+        attempts: 2,
       },
       redis: {
-        host: '127.0.0.1',
-        port: 6379
+        host: process.env['REDIS_HOST'],
+        port: Number(process.env['REDIS_PORT']),
+        password: process.env['REDIS_PASSWORD']?.length === 0 ? undefined : process.env['REDIS_PASSWORD']
       }
     })
+
+    this.queues[this.name] = Object.assign(this, { queues: null })
   }
 }

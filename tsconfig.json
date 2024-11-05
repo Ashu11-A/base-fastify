@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -17,13 +17,15 @@
     "noImplicitReturns": true,
     "allowJs": true,
 
-    "outDir": "./dist",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    "outDir": "./dist/mjs",
     "rootDir": "./",
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "typeRoots": ["src/types/**/*.d.ts"]
   },
   "include": ["src", "routers"],
   "exclude": ["node_modules", "dist"]
