@@ -1,11 +1,8 @@
-import { BaseEntity, Column, CreateDateColumn, Entity, Generated, OneToMany, PrimaryGeneratedColumn, type Relation, UpdateDateColumn } from 'typeorm'
-import { Log } from './Log.js'
-import { Petition } from './Petition.js'
+import { BaseEntity, Column, CreateDateColumn, Entity, Generated, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 
-enum UserStatus {
-  Approved = 'approved',
-  Disapproved = 'disapproved',
-  Pentent = 'pentent'
+enum Role {
+  Administrator = 'administrator',
+  User = 'user'
 }
 
 @Entity({ name: 'users' })
@@ -16,20 +13,22 @@ export class User extends BaseEntity {
   @Generated('uuid')
     uuid!: string
 
-  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.Pentent })
-    status!: UserStatus  
+  @Column({
+    type: 'enum',
+    enum: Role,
+    default: Role.User
+  })
+    role!: 'administrator' | 'user'
+
   @Column({ type: 'text' })
     name!: string
   @Column({ type: 'text' })
     username!: string
   @Column({ type: 'varchar' })
     email!: string
-    
-  @OneToMany(() => Petition, (petition) => petition.user)
-    petitions!: Relation<Petition[]>
 
-  @OneToMany(() => Log, (log) => log.user)
-    logs!: Relation<Log[]>
+  @Column({ type: 'varchar' })
+    language!: string
 
   @Column({ type: 'text' })
     password!: string

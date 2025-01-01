@@ -7,8 +7,8 @@ export default new Router({
   method: [
     {
       type: MethodType.Get,
-      async run(request, reply) {
-        return reply.send('Hello World')
+      async run(_request, reply) {
+        return reply.code(200).send({ message: 'Hello World' })
       },
     }
   ]

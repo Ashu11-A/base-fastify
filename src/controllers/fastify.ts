@@ -17,6 +17,7 @@ export const fastifyPassport = new Authenticator()
 interface Options {
   host: string
   port: number
+  log?: boolean
 }
 
 export class Fastify {
@@ -25,7 +26,7 @@ export class Fastify {
 
   init () {
     const server = fastify({
-      logger: {
+      logger: this.options.log === undefined ? undefined : {
         transport: {
           target: 'pino-pretty',
           options: {

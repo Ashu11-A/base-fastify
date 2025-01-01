@@ -31,12 +31,7 @@ export default new Router({
           })
         }
 
-        const existUser = await User.findOne({
-          where: [
-            { username: parsed.data.username },
-            { email: parsed.data.email }
-          ]
-        })
+        const existUser = await User.findOneBy({ email: parsed.data.email })
         if (existUser) {
           return reply.code(422).send({
             message: 'A user with the provided email or username already exists. Please use different credentials.'

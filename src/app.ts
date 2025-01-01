@@ -8,7 +8,7 @@ import Database from './database/dataSource.js'
 
 execSync('bun run migration:run || true', { stdio: 'inherit' })
 
-const fastify = new Fastify({ port: 3000, host: '0.0.0.0' })
+const fastify = new Fastify({ port: Number(process.env['PORT']) || 3000, host: '0.0.0.0' })
 await Database.initialize()
 
 fastify.init()
