@@ -1,15 +1,19 @@
 import { Router } from '@/controllers/router.js'
-import { MethodType } from '@/types/router.js'
+import { z } from 'zod'
 
-export default new Router({
+const router = new Router({
   name: 'Home',
   description: 'Home API',
-  method: [
-    {
-      type: MethodType.Get,
-      async run(_request, reply) {
-        return reply.code(200).send({ message: 'Hello World' })
-      },
-    }
-  ]
-}) 
+  schema: z.object({
+    name: z.string()
+  }),
+  authenticate: false,
+  post({ reply, schema }) {
+    return reply.code(200).send({ message: 'Hello', data: schema.name })
+  }
+})
+
+// type HandlerReturnType = ReturnType<typeof router.methods.post>
+// type Response = NonNullable<Parameters<HandlerReturnType['send']>[0]>
+
+export default router

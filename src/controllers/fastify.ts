@@ -1,15 +1,13 @@
 import { fastifyCookie } from '@fastify/cookie'
 import { fastifyMultipart } from '@fastify/multipart'
 import { Authenticator } from '@fastify/passport'
-import { fastifySession } from '@fastify/session'
 import { fastifyStatic } from '@fastify/static'
 import { fastifyWebsocket } from '@fastify/websocket'
 import fastify, { FastifyInstance } from 'fastify'
 
-import { BearerStrategy } from '@/strategies/BearerStrategy.js'
-
-import { User } from '@/database/entity/User.js'
 import { storagePath } from '@/index.js'
+import { BearerStrategy } from '@/strategies/BearerStrategy.js'
+import { CookiesStrategy } from '@/strategies/CookiesStrategy.js'
 
 
 export const fastifyPassport = new Authenticator()
@@ -56,25 +54,12 @@ export class Fastify {
       .register(fastifyCookie, {
         secret: cookieToken
       })
-      .register(fastifySession, {
-        secret: sessionToken,
-        logLevel: 'debug',
-        cookie: {
-          path: '/',
-          maxAge: 60 * 60 * 24 * 7 // 7 dias
-        }
+      .decorate('auth', {
+        strategies: [
+          BearerStrategy,
+          CookiesStrategy
+        ]
       })
-      .register(fastifyPassport.initialize())
-    
-    fastifyPassport.registerUserSerializer<User, string>(async (user) => {
-      console.log('registerUserSerializer', user)
-      return user.uuid
-    })
-    fastifyPassport.registerUserDeserializer<string, User | null>(async (uuid) => {
-      console.log('registerUserDeserializer', uuid)
-      return await User.findOneBy({ uuid })
-    })
-    fastifyPassport.use('bearer', new BearerStrategy())
 
     Fastify.server = server
     return this

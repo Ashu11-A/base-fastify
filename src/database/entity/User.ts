@@ -1,6 +1,6 @@
 import { BaseEntity, Column, CreateDateColumn, Entity, Generated, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
 
-enum Role {
+export enum Role {
   Administrator = 'administrator',
   User = 'user'
 }
@@ -13,12 +13,8 @@ export class User extends BaseEntity {
   @Generated('uuid')
     uuid!: string
 
-  @Column({
-    type: 'enum',
-    enum: Role,
-    default: Role.User
-  })
-    role!: 'administrator' | 'user'
+  @Column({ type: 'varchar', default: Role.User, nullable: true })
+    role!: Role
 
   @Column({ type: 'text' })
     name!: string

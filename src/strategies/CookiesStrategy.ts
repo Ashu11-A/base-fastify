@@ -3,9 +3,9 @@ import { FastifyRequest } from 'fastify'
 import jwt from 'jsonwebtoken'
 import { Strategy } from './Base.js'
 
-export class BearerStrategy extends Strategy<User> {
+export class CookiesStrategy extends Strategy<User> {
   constructor() {
-    super('bearer')
+    super('cookies')
   }
 
   async validation(request: FastifyRequest) {
@@ -13,8 +13,11 @@ export class BearerStrategy extends Strategy<User> {
       const secret = process.env.JWT_TOKEN
       if (!secret) throw new Error('JWT_TOKEN não definido!')
       
-      const token = request.headers['authorization']
-      if (!token) return this.fail('Token de autenticação necessário', 401)
+      const cookie = request.cookies['Bearer']
+      if (!cookie) return this.fail('Token de autenticação necessário', 401)
+        
+      const { valid, value: token } = request.unsignCookie(cookie)
+      if (!valid || !token) return this.fail('Cookie inválido', 401)
 
       const userData = jwt.verify(token, secret, { algorithms: ['HS512'] })
       if (typeof userData !== 'object' || !userData) return this.fail('Token inválido', 403)
@@ -23,6 +26,7 @@ export class BearerStrategy extends Strategy<User> {
       const { id, uuid } = userData
       const user = await User.findOneBy({ id })
       if (!user || user.uuid !== uuid) return this.fail('Usuário não encontrado', 401)
+  
 
       this.success(user)
     } catch (err) {

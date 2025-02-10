@@ -1,17 +1,14 @@
+import { User } from '@/database/entity/User.js'
+import { BearerStrategy } from '@/strategies/BearerStrategy.js'
+import { CookiesStrategy } from '@/strategies/CookiesStrategy.js'
+
 declare module 'fastify' {
-    interface PassportUser {
-        id: number
-        uuid: string
-        name: string
-        username: string
-        email: string
-        language: string
-        created_at: string
-        updated_at: string
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+  interface PassportUser extends User {}
+  interface FastifyInstance {
+    // request.server.auth
+    auth: {
+      strategies: (typeof BearerStrategy | typeof CookiesStrategy)[]
     }
-    interface FastifyRequest {
-        user?: PassportUser;
-        // authInfo?: Record<string, unknown>;
-        // account?: PassportUser;
-    }
+  }
 }

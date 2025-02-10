@@ -1,15 +1,49 @@
  
-import { MethodType, RouterOptions } from '@/types/router.js'
-import { glob } from 'glob'
-import { basename, dirname, extname, join } from 'path'
-import { Fastify, fastifyPassport } from './fastify.js'
+import { Role } from '@/database/entity/User.js'
 import chalk from 'chalk'
+import { FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify'
+import { glob } from 'glob'
+import { join } from 'path'
+import { ZodObject, ZodRawShape } from 'zod'
+import { MethodType, ReplyKeysToCodes, ReplyType, ResolveReplyType, RouteHandler, type RouterOptions } from '../types/router.js'
+import { authenticator } from './auth.js'
+import { Fastify } from './fastify.js'
 
-export class Router {
-  static all: Router[] = []
+/**
+ * Our Router class.  
+ * We add an index signature so that the compiler knows that extra properties (like 'get')
+ * may be present.
+ */
+export class Router<
+  Schema extends ZodRawShape,
+  Authenticate extends boolean | Role | Role[],
+  Methods extends Partial<Record<MethodType, RouteHandler<Authenticate, Schema>>>,
+> {
+  static all: Router<ZodRawShape, boolean, Partial<Record<MethodType, RouteHandler<boolean, ZodRawShape>>>>[] = []
 
-  constructor(public options: RouterOptions) {
-    Router.all.push(this)
+  public name: string
+  public path?: string
+  public schema?: ZodObject<Schema>
+  public description: string
+  public authenticate: Authenticate
+  public methods: Methods
+
+  constructor(options: RouterOptions<Authenticate, Schema, Methods>) {
+    const { name, path, schema, description, authenticate, delete: deleteHandle, get, post, put, websocket } = options
+    this.name = name
+    this.path = path
+    this.schema = schema
+    this.description = description
+    this.authenticate = (authenticate ?? false) as Authenticate
+    this.methods = {
+      delete: deleteHandle,
+      get,
+      post,
+      put,
+      websocket
+    };
+
+    (Router.all as unknown as Router<Schema, Authenticate, Methods>[]).push(this)
   }
 
   static async register () {
@@ -18,71 +52,80 @@ export class Router {
 
     for (const file of routers) {
       const filePath = join(pathRouter, file)
-      const { default: router } = await import(filePath) as { default: Router }
-
-      if (router === undefined) continue
+      const { default: router } = await import(filePath) as { default: Router<ZodRawShape, boolean, object> }
+      if (router === undefined) {
+        console.log(chalk.red(`Put export default in the route: ${filePath}`))
+        continue
+      }
       
-      router.options = Object.assign(router.options, { path: router.options?.path ?? file })
+      router.path = router?.path ?? file
     }
 
-    for (const router of Router.all) {
-      let path = router.options.path as string
+    for (const [index, router] of Object.entries(Router.all)) {
+      let path = router.path as string
 
-      // <-- Formata o PATH
-      const regexBrackets = /\(([^)]+)\)/g
-
-      // Remove o nome do arquivo da rota
-      if (['.ts', '.js'].includes(extname(path))) {
-        path = join(dirname(path), basename(path, extname(path)))
-      }
+      path = path
+        .replace(/\.(ts|js)$/i, '') // Remove extensões ".ts" ou ".js"
+        .replace('index', '')       // Remove "/index" para deixar "/"
+        .replace(/\([^)]*\)/g, '')  // Remove parênteses e seu conteúdo
+        .replace(/[/\\]+$/, '')    // Remove barras finais "/" ou "\"
+        .replace(/\\/g, '/')        // Converte "\" para "/"
       
-      // Caso a rota seja do tipo index, deixe ele com o nome da rota da pasta
-      if (path.includes('index')) {
-        path = path.replace(basename(path), '')
-      }
+      // Garante que o path comece com '/'
+      if (!path.startsWith('/')) path = '/' + path
 
-      // Caso a rota tenha algum diretório entre () parênteses, eles serão removidos do path
-      if (regexBrackets.test(path)) {
-        path = path.replace(regexBrackets, '')
-      }
-      // Remove caracter com final com '/' ou '\'
-      path = path.replace(/[/\\]$/, '')
-      // Adiciona / no começo do path caso necessario
-      path = join('/', path)
-      // Substitui '\'' para '/'
-      path = path.replace(/\\/g, '/')
+      Router.all[Number(index)].path = path
       
-      for (const method of router.options.method) {
-        const auth = method.authenticate ? { preValidation: fastifyPassport.authenticate(method.authenticate) } : {}
+      for (const [type, method] of Object.entries(router.methods)) {
+        if (!Object.keys(MethodType).includes(type) || typeof method !== 'function') continue
+        const auth = router.authenticate
+          ? {
+            preValidation: (request, reply) => authenticator(request, reply, router.authenticate)
+          } satisfies RouteShorthandOptions
+          : {}
+        const response = (request: FastifyRequest, reply: FastifyReply) => {
+          const parsed = router.schema?.safeParse(request.body)
 
-        switch(method.type) {
-        case MethodType.Get: {
-          Fastify.server.get(path, auth, method.run)
+          if (parsed !== undefined && !parsed.success) return reply.code(400).send({
+            message: parsed.error.name,
+            error: parsed.error
+          })
+
+          return method({
+            request,
+            reply: (reply as ReplyType<ReplyKeysToCodes<unknown>, ResolveReplyType<unknown, ReplyKeysToCodes<unknown>>>),
+            schema: parsed?.data ?? {}
+          })
+        }
+
+        switch(type) {
+        case MethodType.get: {
+          Fastify.server.get(path, auth, response)
           break
         }
-        case MethodType.Post: {
-          Fastify.server.post(path, auth, method.run)
+        case MethodType.post: {
+          Fastify.server.post(path, auth, response)
           break
         }
-        case MethodType.Put: {
-          Fastify.server.put(path, auth, method.run)
+        case MethodType.put: {
+          Fastify.server.put(path, auth, response)
           break
         }
-        case MethodType.Delete: {
-          Fastify.server.delete(path, auth, method.run)
+        case MethodType.delete: {
+          Fastify.server.delete(path, auth, response)
           break
         }
-        case MethodType.Websocket: {
-          Fastify.server.get(path, { websocket: true, ...auth }, method.run)
+        case MethodType.websocket: {
+          Fastify.server.get(path, { websocket: true, ...auth }, () => {})
         }
         }
       }
 
       console.log(chalk.green(`
 📡 The route ${chalk.blueBright(path)} has been successfully registered!
-    🏷️  Route Name: ${chalk.cyan(router.options.name)}
-    📃 Description: ${chalk.yellow(router.options.description)}
-    📋 Methods: ${chalk.magenta(router.options.method.map((method) => method.type).join(', '))}
+    🏷️  Route Name: ${chalk.cyan(router.name)}
+    📃 Description: ${chalk.yellow(router.description)}
+    📋 Methods: ${chalk.magenta(Object.keys(router.methods).filter((method) => (router.methods)[(method as MethodType)] !== undefined).join(', '))}
       `))
       
     }
