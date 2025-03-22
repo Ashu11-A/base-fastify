@@ -1,0 +1,20 @@
+{
+  "name": "rpc",
+  "version": "1.0.0",
+  "private": true,
+  "module": "src/app.ts",
+  "types": "src/app.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/axios": "^0.14.4",
+    "@types/bun": "latest",
+    "server": "workspace:../server",
+    "zod": "^3.24.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "axios": "^1.8.1"
+  }
+}

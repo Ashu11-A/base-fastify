@@ -1,0 +1,85 @@
+import { fastifyCookie } from '@fastify/cookie'
+import { fastifyMultipart } from '@fastify/multipart'
+import fastify, { type FastifyInstance } from 'fastify'
+import fastifyIO from 'fastify-socket.io'
+
+import { BearerStrategy } from '@/strategies/BearerStrategy.js'
+import { CookiesStrategy } from '@/strategies/CookiesStrategy.js'
+
+interface Options {
+  host: string
+  port: number
+  log?: boolean
+}
+
+export class Fastify {
+  static server: FastifyInstance
+  constructor(public options: Options){}
+
+  init () {
+    const server = fastify({
+      logger: this.options.log === undefined ? undefined : {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard', // Formato de data e hora
+            ignore: 'pid,hostname,reqId', // Ignorar campos desnecessários
+          },
+        },
+      },
+    })
+    
+    const cookieToken = process.env['COOKIE_TOKEN']
+    if (cookieToken === undefined) throw new Error('Cookie token are undefined')
+
+    server
+      .register(fastifyMultipart, {
+        limits: {
+          fileSize: 1024 * 1024 * 50 // 50 Mb
+        }
+      })
+      .register(fastifyCookie, {
+        secret: cookieToken,
+      })
+      .register(fastifyIO, {
+        async allowRequest(req, fn) {
+          console.log(req.headers)
+          const strategy = new BearerStrategy()
+          await strategy.validation(req)
+          console.log(strategy)
+
+          if (strategy.authenticated) return fn(undefined, true)
+          fn(strategy.error?.message, false)
+        },
+      })
+      .decorate('auth', {
+        strategies: [
+          BearerStrategy,
+          CookiesStrategy
+        ]
+      })
+
+    Fastify.server = server
+    return this
+  }
+
+  async listen () {
+    await new Promise<void>((resolve) => {
+      Fastify.server.listen({
+        port: this.options.port,
+        host: this.options.host
+      }, (err, address) => {
+        if (err !== null) {
+          console.log(`Port unavailable: ${this.options.port}`)
+          console.log(err)
+          this.options.port = this.options.port + 1
+          return this.listen()
+        }
+            
+        console.log(`Server listening at ${address}`)
+        return resolve()
+      })
+    }) 
+  }
+}
