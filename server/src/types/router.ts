@@ -1,3 +1,4 @@
+import type { Router } from '@/controllers/router'
 import { Role, User } from '@/database/entity/User.js'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { z, ZodError, ZodTypeAny } from 'zod'
@@ -74,6 +75,8 @@ export type RouteHandler<
   reply: TypedReply<TData, StatusCodes>;
   schema: ZodInferredData<Method, Schema>;
 }) => unknown
+
+export type GenericRouter = Router<boolean, SchemaDynamic<MethodKeys>, { [Method in MethodKeys]: RouteHandler<Method, boolean, SchemaDynamic<Method>> }> 
 
 export type RouterOptions<
   Authenticate extends boolean | Role | Role[],
