@@ -19,8 +19,7 @@ export type MethodKeys = keyof typeof MethodType
 export type Codes = (typeof CodesSuccess[number]) | (typeof CodesError[number])
 
 export type ErrorData = { message: string; error?: ZodError }
-export type ListResponse<TData> = {
-  data: TData[]
+export type ListResponse = {
   total: number
   currentPage: number
   totalPages: number
@@ -29,7 +28,7 @@ export type ListResponse<TData> = {
 export type SucessData<TData> = {
   message: string
   data: TData
-} & (TData extends unknown[] ? { metadata: ListResponse<TData> } : object)
+} & (TData extends unknown[] ? { metadata: ListResponse } : object)
 
 export type TReplySuccess<TData> = {
   [Status in typeof CodesSuccess[number]]: SucessData<TData>

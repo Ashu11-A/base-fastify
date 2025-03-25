@@ -82,9 +82,11 @@ export async function paginate<Additional extends ObjectLiteral, T extends Objec
 
   return {
     data,
-    total,
-    currentPage: page,
-    totalPages: Math.ceil(total / pageSize),
-    pageSize,
+    metadata: {
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / pageSize),
+      pageSize,
+    }
   }
 }
