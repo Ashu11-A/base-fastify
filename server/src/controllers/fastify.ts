@@ -2,6 +2,8 @@ import { fastifyCookie } from '@fastify/cookie'
 import { fastifyMultipart } from '@fastify/multipart'
 import fastify, { type FastifyInstance } from 'fastify'
 import fastifyIO from 'fastify-socket.io'
+import { fastifyCompress } from '@fastify/compress'
+import { constants as zlibConstants } from 'zlib'
 
 import { BearerStrategy } from '@/strategies/BearerStrategy.js'
 import { CookiesStrategy } from '@/strategies/CookiesStrategy.js'
@@ -34,6 +36,18 @@ export class Fastify {
     if (cookieToken === undefined) throw new Error('Cookie token are undefined')
 
     server
+      .register(fastifyCompress, {
+        logLevel: 'debug',
+        brotliOptions: {
+          params: {
+            [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
+            [zlibConstants.BROTLI_PARAM_QUALITY]: 11
+          }
+        },
+        zlibOptions: {
+          level: 9,
+        }
+      })
       .register(fastifyMultipart, {
         limits: {
           fileSize: 1024 * 1024 * 50 // 50 Mb

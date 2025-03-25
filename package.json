@@ -4,7 +4,8 @@
   "type": "module",
   "workspaces": ["server", "packages/*"],
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "autocannon": "^8.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
