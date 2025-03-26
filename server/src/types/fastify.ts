@@ -13,4 +13,7 @@ declare module 'fastify' {
       strategies: (typeof BearerStrategy | typeof CookiesStrategy)[]
     }
   }
+  interface FastifyRequest {
+    user?: User
+  }
 }
