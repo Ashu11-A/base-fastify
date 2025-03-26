@@ -2,6 +2,7 @@ import type { Router } from '@/controllers/router'
 import { Role, User } from '@/database/entity/User.js'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { z, ZodError, ZodTypeAny } from 'zod'
+import type { FastifyCompressRouteOptions } from '@fastify/compress'
 
 /*
  * Enum for HTTP method types.
@@ -90,4 +91,4 @@ export type RouterOptions<
   schema?: Schema
   description: string
   methods: Routers
-}
+} & FastifyCompressRouteOptions

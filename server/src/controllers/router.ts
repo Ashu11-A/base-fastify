@@ -1,4 +1,5 @@
 import type { Role } from '@/database/entity/User.js'
+import type { FastifyCompressRouteOptions } from '@fastify/compress'
 import { type MethodKeys, type RouteHandler, type RouterOptions, type SchemaDynamic } from '../types/router.js'
 
 export class Router<
@@ -10,6 +11,8 @@ export class Router<
   public path?: string
   public schema?: RouterOptions<Authenticate, Schema, Routers>['schema']
   public description: string
+  public compress: FastifyCompressRouteOptions['compress']
+  public decompress: FastifyCompressRouteOptions['decompress']
   public authenticate: Authenticate
   public methods: Routers
 
@@ -21,5 +24,7 @@ export class Router<
     this.description = description
     this.authenticate = (authenticate ?? false) as Authenticate
     this.methods = methods
+    this.compress = options.compress
+    this.decompress = options.decompress
   }
 }

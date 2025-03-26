@@ -31,13 +31,15 @@ export async function registerRouter () {
     return routers
   })()
 
-  for (const [path, router] of Object.entries(routersP)) {
+  for (const [path, router] of Object.entries(routersP as Record<string, GenericRouter>)) {
     router.name = router.name.replaceAll(' ', '')
     router.path = path
 
     for (const [type, method] of Object.entries(router.methods)) {
       if (!Object.keys(MethodType).includes(type) || typeof method !== 'function') continue
       const options: RouteShorthandOptions = {
+        compress: router.compress,
+        decompress: router.decompress,
         ...(router.authenticate
           ? {
             preValidation: (request, reply) => authenticator(request, reply, router.authenticate),

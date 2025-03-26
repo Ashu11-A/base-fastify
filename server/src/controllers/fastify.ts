@@ -25,8 +25,8 @@ export class Fastify {
           target: 'pino-pretty',
           options: {
             colorize: true,
-            translateTime: 'SYS:standard', // Formato de data e hora
-            ignore: 'pid,hostname,reqId', // Ignorar campos desnecessários
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname,reqId',
           },
         },
       },
@@ -58,10 +58,8 @@ export class Fastify {
       })
       .register(fastifyIO, {
         async allowRequest(req, fn) {
-          console.log(req.headers)
           const strategy = new BearerStrategy()
           await strategy.validation(req)
-          console.log(strategy)
 
           if (strategy.authenticated) return fn(undefined, true)
           fn(strategy.error?.message, false)
@@ -91,7 +89,6 @@ export class Fastify {
           return this.listen()
         }
             
-        console.log(`Server listening at ${address}`)
         return resolve()
       })
     }) 

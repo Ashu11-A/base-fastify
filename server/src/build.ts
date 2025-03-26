@@ -24,7 +24,6 @@ class Build {
         router.path = formatPath(router?.path ?? file)
         this.routers.set(file, router)
     }
-    console.log(this.routers)
   }
 
   async bundle () {
