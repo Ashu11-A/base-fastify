@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { LocalStorage, MemoryStorage } from './storage/index.js'
+import { LocalStorage, MemoryStorage } from 'storage'
 
 const cwd = import.meta.filename.endsWith('.ts') ? join(process.cwd(), '../') : process.cwd()
 
