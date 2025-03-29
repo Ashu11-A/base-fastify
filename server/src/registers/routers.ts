@@ -9,6 +9,8 @@ import { dirname, join } from "path"
 import { fileURLToPath } from "url"
 
 export async function registerRouter () {
+  if (Fastify.server === undefined) throw new Error('Server not configured!')
+
   const isPKG = dirname(fileURLToPath(import.meta.url)) === process.cwd()
   const routersP = isPKG
     ? routers

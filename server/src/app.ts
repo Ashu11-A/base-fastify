@@ -9,6 +9,6 @@ import { registerRouter } from './registers/routers.js'
 const fastify = new Fastify({ port: Number(process.env['PORT']) || 3000, host: '0.0.0.0' })
 await Database.initialize()
 
-fastify.init()
+fastify.config()
 await registerRouter()
 await fastify.listen()

@@ -1,8 +1,8 @@
+import { fastifyCompress } from '@fastify/compress'
 import { fastifyCookie } from '@fastify/cookie'
 import { fastifyMultipart } from '@fastify/multipart'
 import fastify, { type FastifyInstance } from 'fastify'
 import fastifyIO from 'fastify-socket.io'
-import { fastifyCompress } from '@fastify/compress'
 import { constants as zlibConstants } from 'zlib'
 
 import { BearerStrategy } from '@/strategies/BearerStrategy.js'
@@ -18,8 +18,11 @@ export class Fastify {
   static server: FastifyInstance
   constructor(public options: Options){}
 
-  init () {
-    const server = fastify({
+  config () {
+    const cookieToken = process.env['COOKIE_TOKEN']
+    if (cookieToken === undefined) throw new Error('Cookie token are undefined')
+
+      Fastify.server = fastify({
       logger: this.options.log === undefined ? undefined : {
         transport: {
           target: 'pino-pretty',
@@ -31,12 +34,7 @@ export class Fastify {
         },
       },
     })
-    
-    const cookieToken = process.env['COOKIE_TOKEN']
-    if (cookieToken === undefined) throw new Error('Cookie token are undefined')
-
-    server
-      .register(fastifyCompress, {
+    .register(fastifyCompress, {
         logLevel: 'debug',
         brotliOptions: {
           params: {
@@ -72,24 +70,22 @@ export class Fastify {
         ]
       })
 
-    Fastify.server = server
     return this
   }
 
   async listen () {
+    if (Fastify.server == undefined) throw new Error('Server not configured!')
+
     await new Promise<void>((resolve) => {
       Fastify.server.listen({
         port: this.options.port,
         host: this.options.host
-      }, (err, address) => {
-        if (err !== null) {
-          console.log(`Port unavailable: ${this.options.port}`)
-          console.log(err)
-          this.options.port = this.options.port + 1
-          return this.listen()
-        }
-            
-        return resolve()
+      }, (err) => {
+        if (err === null) return resolve()
+        console.log(`Port unavailable: ${this.options.port}`)
+        console.log(err)
+        this.options.port = this.options.port + 1
+        return this.listen()
       })
     }) 
   }
