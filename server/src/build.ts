@@ -6,96 +6,111 @@ import { MethodType, type GenericRouter } from "./types/router"
 import { formatPath } from "./registers/routers"
 
 class Build {
-  path = join(import.meta.dirname, '../routers')
-  routers: Map<string, GenericRouter> = new Map()
+  private readonly basePath = join(import.meta.dirname, '../routers')
+  private routers = new Map<string, GenericRouter>()
 
-  async loader () {
-    const files = await glob('**/*.ts', { cwd: this.path })
+  private async loadRouters() {
+    const files = await glob('**/*.ts', { cwd: this.basePath })
 
     for (const file of files) {
-        const filePath = join(this.path, file)
+      const filePath = join(this.basePath, file)
+
+      try {
         const { default: router } = await import(filePath) as { default: GenericRouter }
-        if (router === undefined || router?.name === undefined) {
-          console.log(chalk.red(`Put export default in the route: ${filePath}`))
+
+        if (!router?.name) {
+          console.log(chalk.red(`Missing export default in route: ${filePath}`))
           continue
         }
-        
+
         router.name = router.name.replaceAll(' ', '')
         router.path = formatPath(router?.path ?? file)
         this.routers.set(file, router)
+      } catch (err) {
+        console.log(chalk.red(`Error loading router ${filePath}: ${err}`))
+      }
     }
   }
 
-  async bundle () {
-      const imports: string[] = []
-      const exports: Record<string, string> = {}
-  
-      for (const [fileName, router] of Array.from(this.routers.entries())) {
-        imports.push(`import ${router.name} from '../../${join('routers', fileName)}'`)
-        exports[router.path ?? formatPath(router?.path ?? fileName)] = router.name
-      }
-  
-      imports.push(`\nexport const routers = {
-${Object.entries(exports).map(([path, name]) => `  '${path}': ${name}`).join(',\n')}
-}`)
-      writeFile('src/build/routers.ts', imports.join('\n').replaceAll('.ts', '.js'))
-    }
-
-  async rpc () {
+  private generateRouterImports(): string {
     const imports: string[] = []
-    const types: string[] = []
-    const routes = new Map<string, {
-      [Method in keyof typeof MethodType]?: { 
-        response: string
-        request: string
+    const exportsContent: string[] = [];
+
+    for (const [fileName, router] of this.routers.entries()) {
+      const normalizedPath = join('routers', fileName).replace(/\\/g, '/')
+      imports.push(`import ${router.name} from '../../${normalizedPath}'`)
+      exportsContent.push(`  '${router.path}': ${router.name}`)
+    }
+
+    return [
+      ...imports,
+      `\nexport const routers = {\n${exportsContent.join(',\n')}\n}\n`
+    ].join('\n').replace(/\.ts/g, '.js')
+  }
+
+  private generateRpcTypes(): string {
+    const routes: string[] = []
+    const imports = [
+      '/* eslint-disable @typescript-eslint/no-explicit-any */',
+      'import type { z } from \'zod\'',
+      'import type { Router } from \'../controllers/router.js\''
+    ]
+
+    const typeHelpers = [
+      'type MergeUnion<T> = (T extends any ? (x: T) => void : never) extends (x: infer R) => void ? { [K in keyof R]: R[K] }: never',
+      'type UnwrapPromise<T> = T extends Promise<any> ? Awaited<T> : T',
+      'type FirstParameter<T> = T extends Router<infer First, any, any> ? First : never',
+    ]
+
+    for (const [fileName, router] of this.routers.entries()) {
+      const normalizedPath = join('routers', fileName).replace(/\\/g, '/')
+
+      imports.push(`import ${router.name} from '../../${normalizedPath}'`);
+      if (!router.path) continue
+
+      const methods: string[] = []
+      for (const methodType of Object.values(MethodType)) {
+        const method = router.methods[methodType]
+        if (typeof method !== 'function') continue
+
+        const responseType = `MergeUnion<UnwrapPromise<ReturnType<typeof ${router.name}.methods.${methodType}>>>`
+        const requestType = router.schema?.[methodType]
+          ? `z.infer<NonNullable<typeof ${router.name}.schema>['${methodType}']>`
+          : 'undefined'
+        const authType = router.authenticate
+          ? `FirstParameter<typeof ${router.name}>`
+          : 'undefined'
+
+        methods.push(`${methodType}: {
+      response: ${responseType},
+      request: ${requestType},
+      auth: ${authType}
+    }`)
       }
-    }>()
 
-    imports.push('/* eslint-disable @typescript-eslint/no-explicit-any */')
-    imports.push('import type { z } from \'zod\'')
-    imports.push('import type { Router } from \'../controllers/router.js\'')
-    types.push(`
-type MergeUnion<T> = (T extends any ? (x: T) => void : never) extends (x: infer R) => void ? { [K in keyof R]: R[K] }: never
-type UnwrapPromise<T> = T extends Promise<any> ? Awaited<T> : T
-type FirstParameter<T> = T extends Router<infer First, any, any> ? First : never;`.trim())
-
-    for (const [fileName, router] of Array.from(this.routers.entries())) {
-      imports.push(`import ${router.name} from '../../${join('routers', fileName)}'`)
-
-      for (const [type, method] of Object.entries(router.methods)) {
-        if (
-          !Object.keys(MethodType).includes(type)
-          || typeof method !== 'function'
-          || !router.path
-        ) continue
-
-        routes.set(router.path, {
-          ...routes.get(router.path),
-          [type]: {
-            response: `MergeUnion<UnwrapPromise<ReturnType<typeof ${router.name}.methods.${type}>>>`,
-            request: router.schema?.[type as MethodType] ? `z.infer<NonNullable<typeof ${router.name}.schema>['${type}']>` : undefined,
-            auth: router.authenticate ? `FirstParameter<typeof ${router.name}>` : undefined
-          }
-        })
+      if (methods.length > 0) {
+        routes.push(`'${router.path}': {
+    ${methods.join(',\n  ')}
+  }`);
       }
     }
 
-    imports.push('\n' + types.join('\n') + '\n')
-    imports.push(`export type Routers = ${
-  JSON.stringify(Object.fromEntries(routes), null, 2)
-    .replaceAll('"', '\'')
-    .replaceAll('\'MergeUnion', 'MergeUnion')
-    .replaceAll('>\'', '>')
-    .replaceAll('\'z.infer', 'z.infer')
-    .replaceAll(']>\'', ']>')
-    .replaceAll('.ts', '')
-    .replaceAll('\'FirstParameter', 'FirstParameter')}
-`)
-    writeFile('src/build/rpc.ts', imports.join('\n').replaceAll('.ts', '.js'))
+    return [
+      imports.join('\n'),
+      typeHelpers.join('\n'),
+      `export type Routers = {\n  ${routes.join(',\n  ')}\n}`
+    ].join('\n\n').replace(/\.ts/g, '.js')
   }
+
+  async build(): Promise<void> {
+    await this.loadRouters()
+
+    await Promise.all([
+      writeFile('src/build/routers.ts', this.generateRouterImports()),
+      writeFile('src/build/rpc.ts', this.generateRpcTypes())
+    ])
+  }
+
 }
 
-const build = new Build()
-await build.loader()
-await build.rpc()
-await build.bundle()
+await new Build().build()

@@ -1,8 +1,10 @@
 {
   "name": "base-fastify",
-  "module": "index.ts",
   "type": "module",
   "workspaces": ["server", "packages/*"],
+  "scripts": {
+    "dev": "cd server && bun run dev"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "autocannon": "^8.0.0"

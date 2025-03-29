@@ -3,24 +3,6 @@ import axios, { AxiosError } from 'axios'
 import { CodesError, type ErrorData, type SucessData, type TReply } from 'server/src/types/router'
 import { ErrorResponse, SuccessResponse, type SuccessResponseOptions } from '../app'
 
-// type RouterBase = Record<
-//   string,
-//   {
-//     [Method in MethodType]: {
-//       response: Partial<TReply<unknown>>
-//       request?: unknown
-//     }
-//   }
-// >
-
-// Helper type to map each status code to the appropriate response type
-// type ResponseUnion<R extends Record<number, unknown>> = {
-//   [K in keyof R]: K extends typeof CodesError[number]
-//     ? ErrorResponse
-//     : SuccessResponse<SucessData<R[K]>>
-// }[keyof R]
-
-// Type guard to check if a status code is an error
 function isErrorStatus(status: number): status is typeof CodesError[number] {
   return CodesError.includes(status as typeof CodesError[number])
 }
@@ -45,7 +27,11 @@ export class Client<Routers> {
           auth: { bearer: string },
           ...request: Routers[Path][Method] extends { request: infer Req } ? [request: Req] : []
         ]
-      : Routers[Path][Method] extends { request: infer Req } ? [request: Req] : []
+      : Routers[Path][Method] extends { request: infer Req }
+        ? Req extends undefined
+          ? []
+          : [request: Req]
+        : []
   ) {
     const { auth, request } = {
       auth: !args[0] && !args[1] ? args[0] as { bearer: string } : undefined,
