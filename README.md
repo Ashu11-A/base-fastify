@@ -20,7 +20,47 @@ This is a "simple" base project that I've been developing for a few months. As t
 
 **Note:** This project is developed on-demand as new features are needed and does not have continuous maintenance. Do not expect regular bug fixes! ⚠️
 
-## 💡 Example: How the RPC Works 🛠️
+## ⚡ | Using Generated Types in the Server Folder
+
+To use the generated types in the server folder, you need to modify your project's `tsconfig.json` to enable dynamic type acquisition:
+
+```json
+{
+  "compilerOptions": {
+    // The usual
+  },
+  "references": [
+    { "path": "../server" }
+  ]
+}
+```
+
+For an example configuration, see the [client/tsconfig.json](https://github.com/Ashu11-A/base-fastify/blob/main/client/tsconfig.json) file.
+
+For more details on what the `references` field means, please refer to the [TypeScript Project References documentation](https://www.typescriptlang.org/docs/handbook/project-references.html#what-is-a-project-reference).
+
+## 💡 | Examples:
+
+### 📡 | Router:
+
+```ts
+import { Router } from '@/controllers/router.js'
+
+export default new Router({
+  name: 'Home',
+  description: 'Home API',
+  methods: {
+    get({ reply }) {
+      return reply.code(200).send({
+        message: 'hello world',
+        data: {}
+      })
+    }
+  },
+})
+```
+
+### 🛠️ | RPC:
 
 ```ts
 import { Client, ErrorResponse } from 'rpc'
@@ -37,10 +77,11 @@ if (result instanceof ErrorResponse) {
 }
 
 console.log(result.message) // hello world
+console.log(result.data) // {}
 ```
 
-The routes are dynamically typed, but their types are built in `server/src/rpc.ts`.
+The routes are dynamically typed, but their types are built in `server/src/build/rpc.ts`.
 
-**Important:** This project does not actually implement the RPC protocol; its name is merely inspired by the tRPC project. Do not use this project in production unless you’re ready for potential headaches! 😅
+**Important:** Do not use this project in production unless you’re ready for potential headaches! 😅
 
 </div>
