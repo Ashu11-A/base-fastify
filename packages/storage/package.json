@@ -1,5 +1,6 @@
 {
   "name": "storage",
+  "version": "1.0.0",
   "module": "src/index.ts",
   "types": "src/index.ts",
   "type": "module",
