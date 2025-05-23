@@ -1,4 +1,4 @@
-import { Role } from '@/database/entity/User.js'
+import type { Role } from '@/database/enums'
 import { StrategyError } from '@/strategies/Base.js'
 import { type FastifyReply, type FastifyRequest } from 'fastify'
 
@@ -20,9 +20,9 @@ export async function authenticator (request: FastifyRequest, reply: FastifyRepl
 
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' })
     if (typeof authenticate !== 'boolean') {
-      if (!Array.isArray(authenticate)) authenticate = [authenticate]
+      authenticate = Array.isArray(authenticate) ? authenticate : [authenticate]
 
-      if (!authenticate.every((role) => request.user?.role === role)) {
+      if (!authenticate.includes(request.user?.role)) {
         return reply.status(401).send({ error: 'Unauthorized' })
       }
     }

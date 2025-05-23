@@ -1,8 +1,9 @@
 import type { Router } from '@/controllers/router'
-import { Role, User } from '@/database/entity/User.js'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { z, ZodError, ZodTypeAny } from 'zod'
 import type { FastifyCompressRouteOptions } from '@fastify/compress'
+import type { User } from '@/database/entity/User'
+import type { Role } from '@/database/enums'
 
 /*
  * Enum for HTTP method types.
@@ -42,13 +43,6 @@ export type TReplyError = {
 
 
 export type TReply<TData> = TReplySuccess<TData> & TReplyError
-export type ZodInferredData<
-  Method extends MethodKeys,
-  Schema extends SchemaDynamic<Method>,
-> = Schema[Method] extends z.ZodTypeAny
-  ? z.infer<Schema[Method]>
-  : unknown
-export type SchemaDynamic<M extends MethodKeys> = { [K in M]?: ZodTypeAny }
 export type ReplyKeys = keyof TReply<unknown>
 export type ResolveReply<TData, Code extends ReplyKeys> =
   Code extends keyof TReply<TData> ? TReply<TData>[Code] : never
@@ -64,31 +58,57 @@ export interface CustomInstanceFastify extends FastifyRequest {
   user: User
 }
 
+export type SchemaDynamic<M extends MethodKeys> = { [K in M]?: ZodTypeAny }
+export type ZodInferredData<
+  Method extends MethodKeys,
+  Schema extends SchemaDynamic<Method>,
+> = Schema[Method] extends z.ZodTypeAny
+  ? z.infer<Schema[Method]>
+  : unknown
+
+export type QueryDynamic<M extends MethodKeys> = { [K in M]?: readonly string[] }
+export type QueryInferredData<
+  Method extends MethodKeys,
+  Query extends QueryDynamic<Method>,
+> = Query[Method] extends readonly (infer Key extends string)[]
+  ? { [K in Key]: string | undefined }
+  : unknown
+
 export type RouteHandler<
   Method extends MethodKeys,
   Authenticate extends boolean | Role | Role[],
+  Query extends QueryDynamic<Method>,
   Schema extends SchemaDynamic<Method>,
 > = <
   TData,
-  StatusCodes extends ReplyKeys
+  StatusCodes extends ReplyKeys,
+  Request extends Authenticate extends true | Role | Role[] ? CustomInstanceFastify : Omit<CustomInstanceFastify, 'user'>
 > (args: {
-  request: Authenticate extends true | Role | Role[] ? CustomInstanceFastify : Omit<CustomInstanceFastify, 'user'>
+  request: Request
   reply: TypedReply<TData, StatusCodes>;
+  query: QueryInferredData<Method, Query>
   schema: ZodInferredData<Method, Schema>;
 }) => unknown
 
-export type GenericRouter = Router<boolean, SchemaDynamic<MethodKeys>, { [Method in MethodKeys]: RouteHandler<Method, boolean, SchemaDynamic<Method>> }> 
+export type GenericRouter = Router<
+  boolean,
+  SchemaDynamic<MethodKeys>,
+  { [Method in MethodKeys]: readonly string[] },
+  { [Method in MethodKeys]: RouteHandler<Method, boolean, QueryDynamic<Method>, SchemaDynamic<Method>> }
+> 
 
 export type RouterOptions<
   Authenticate extends boolean | Role | Role[],
   Schema extends SchemaDynamic<Methods>,
-  Routers extends { [Method in Methods]?: RouteHandler<Method, Authenticate, Schema> },
+  Query extends QueryDynamic<Methods>,
+  Routers extends { [Method in Methods]?: RouteHandler<Method, Authenticate, Query, Schema> },
   Methods extends MethodKeys = MethodKeys,
 > = {
   name: string
   path?: string
   authenticate?: Authenticate
   schema?: Schema
+  query?: Query
   description: string
   methods: Routers
 } & FastifyCompressRouteOptions

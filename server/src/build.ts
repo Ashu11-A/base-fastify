@@ -1,9 +1,12 @@
 import chalk from "chalk"
 import { writeFile } from 'fs/promises'
 import { glob } from "glob"
-import { join } from "path"
+import { basename, join } from "path"
 import { MethodType, type GenericRouter } from "./types/router"
-import { formatPath } from "./registers/routers"
+import { formatPath } from "./utils/path"
+import { fileURLToPath } from "url"
+
+const path = basename(fileURLToPath(import.meta.url))
 
 class Build {
   private readonly basePath = join(import.meta.dirname, '../routers')
@@ -38,7 +41,7 @@ class Build {
 
     for (const [fileName, router] of this.routers.entries()) {
       const normalizedPath = join('routers', fileName).replace(/\\/g, '/')
-      imports.push(`import ${router.name} from '../../${normalizedPath}'`)
+      imports.push(`import ${router.name} from '../${normalizedPath}'`)
       exportsContent.push(`  '${router.path}': ${router.name}`)
     }
 
@@ -49,26 +52,33 @@ class Build {
   }
 
   private generateRpcTypes(): string {
-    const routes: string[] = []
     const imports = [
       '/* eslint-disable @typescript-eslint/no-explicit-any */',
       'import type { z } from \'zod\'',
-      'import type { Router } from \'../controllers/router.js\''
+      'import type { Router } from \'../src/controllers/router.js\''
     ]
 
     const typeHelpers = [
       'type MergeUnion<T> = (T extends any ? (x: T) => void : never) extends (x: infer R) => void ? { [K in keyof R]: R[K] }: never',
       'type UnwrapPromise<T> = T extends Promise<any> ? Awaited<T> : T',
-      'type FirstParameter<T> = T extends Router<infer First, any, any> ? First : never',
+      'type FirstParameter<T> = T extends Router<infer First, any, any, any> ? First : never',
     ]
+
+    // Mapa para agrupar rotas pelo path
+    const routeMap = new Map<string, Map<string, string>>()
 
     for (const [fileName, router] of this.routers.entries()) {
       const normalizedPath = join('routers', fileName).replace(/\\/g, '/')
-
-      imports.push(`import ${router.name} from '../../${normalizedPath}'`);
+      imports.push(`import ${router.name} from '../${normalizedPath}'`)
+      
       if (!router.path) continue
 
-      const methods: string[] = []
+      // Inicializa o mapa de métodos para este path se não existir
+      if (!routeMap.has(router.path)) {
+        routeMap.set(router.path, new Map())
+      }
+      const methodMap = routeMap.get(router.path)!
+
       for (const methodType of Object.values(MethodType)) {
         const method = router.methods[methodType]
         if (typeof method !== 'function') continue
@@ -81,17 +91,22 @@ class Build {
           ? `FirstParameter<typeof ${router.name}>`
           : 'undefined'
 
-        methods.push(`${methodType}: {
+        methodMap.set(methodType, `${methodType}: {
       response: ${responseType},
       request: ${requestType},
       auth: ${authType}
     }`)
       }
+    }
 
+    // Gera as rotas combinando os métodos
+    const routes: string[] = []
+    for (const [path, methodMap] of routeMap) {
+      const methods = Array.from(methodMap.values())
       if (methods.length > 0) {
-        routes.push(`'${router.path}': {
-    ${methods.join(',\n  ')}
-  }`);
+        routes.push(`'${path}': {
+    ${methods.join(',\n    ')}
+  }`)
       }
     }
 
@@ -105,12 +120,13 @@ class Build {
   async build(): Promise<void> {
     await this.loadRouters()
 
+    const pathRouter = 
+
     await Promise.all([
-      writeFile('src/build/routers.ts', this.generateRouterImports()),
-      writeFile('src/build/rpc.ts', this.generateRpcTypes())
+      writeFile(join(path, '../build/routers.ts'), this.generateRouterImports()),
+      writeFile(join(path, '../build/rpc.ts'), this.generateRpcTypes())
     ])
   }
-
 }
 
 await new Build().build()

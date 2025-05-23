@@ -2,8 +2,8 @@ import { Router } from '@/controllers/router.js'
 import { authTreeRepository } from '@/database/index.js'
 
 export default new Router({
-  name: 'logout',
-  description: 'Remove tokens from the database',
+  name: 'User Logout',
+  description: 'Invalidate and remove user authentication tokens',
   authenticate: true,
   methods: {
     async post({ reply, request }) {

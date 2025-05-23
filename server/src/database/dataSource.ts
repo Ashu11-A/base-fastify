@@ -7,43 +7,50 @@ import mysql from 'mysql2/promise'
 
 const path = dirname(fileURLToPath(import.meta.url))
 
-async function getDatabase (database: 'mysql' | 'sqljs' = 'sqljs') {
+async function getDatabase(database: 'mysql' | 'sqljs' = 'sqljs') {
   switch (database) {
     case 'mysql': {
+      const host = String(process.env.DATABASE_HOST || 'localhost')
+      const port = Number(process.env.DATABASE_PORT || 3306)
+      const username = String(process.env.DATABASE_USERNAME || 'root')
+      const password = String(process.env.DATABASE_PASSWORD || '')
+      const dbName = String(process.env.DATABASE_NAME || 'posto')
+
       const rootSource = await mysql.createConnection({
-        host: process.env['DATABASE_HOST'],
-        port: Number(process.env['DATABASE_PORT']),
-        user: process.env['DATABASE_USERNAME'],
-        password: String(process.env['DATABASE_PASSWORD'])
+        host,
+        port,
+        user: username,
+        password
       })
       
-      await rootSource.query(`CREATE DATABASE IF NOT EXISTS ${process.env['DATABASE_NAME']} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
-      await rootSource.query(`GRANT ALL PRIVILEGES ON ${process.env['DATABASE_NAME']}.* TO '${process.env.DATABASE_USERNAME}'@'%' IDENTIFIED BY '${process.env.DATABASE_PASSWORD}';`)
+      await rootSource.query(`CREATE DATABASE IF NOT EXISTS ${dbName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`)
+      await rootSource.query(`GRANT ALL PRIVILEGES ON ${dbName}.* TO '${username}'@'%' IDENTIFIED BY '${password}';`)
       await rootSource.query('FLUSH PRIVILEGES;')
+      await rootSource.end()
 
       return {
-        type: 'mysql',
-        host: process.env['DATABASE_HOST'],
-        port: Number(process.env['DATABASE_PORT']),
-        username: process.env['DATABASE_USERNAME'],
-        password: String(process.env['DATABASE_PASSWORD']),
-        database: process.env['DATABASE_NAME'],
+        type: 'mysql' as const,
+        host,
+        port,
+        username,
+        password,
+        database: dbName,
         charset: 'utf8mb4',
-      } as const
+      }
     }
     default: {
       return {
-        type: 'sqljs',
+        type: 'sqljs' as const,
         autoSave: true,
         useLocalForage: true,
-        location: String(process.env['DATABASE_FILE']) || 'database.wm',
-      } as const
+        location: String(process.env.DATABASE_FILE || 'database.wm'),
+      }
     }
   }
 }
 
 export default new DataSource({
-  ...(await getDatabase(process.env['DATABASE_TYPE'] as "mysql" | "sqljs" | undefined)),
+  ...(await getDatabase(process.env.DATABASE_TYPE as "mysql" | "sqljs" | undefined)),
   synchronize: true,
   logging: true,
   entities: await glob(join(path, 'entity', '**/*.{js,ts}')),

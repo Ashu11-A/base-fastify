@@ -1,5 +1,6 @@
 import { fastifyCompress } from '@fastify/compress'
-import { fastifyCookie } from '@fastify/cookie'
+import fastifyCookie from '@fastify/cookie'
+import fastifyCors from '@fastify/cors'
 import { fastifyMultipart } from '@fastify/multipart'
 import fastify, { type FastifyInstance } from 'fastify'
 import fastifyIO from 'fastify-socket.io'
@@ -22,7 +23,7 @@ export class Fastify {
     const cookieToken = process.env['COOKIE_TOKEN']
     if (cookieToken === undefined) throw new Error('Cookie token are undefined')
 
-      Fastify.server = fastify({
+    Fastify.server = fastify({
       logger: this.options.log === undefined ? undefined : {
         transport: {
           target: 'pino-pretty',
@@ -34,7 +35,10 @@ export class Fastify {
         },
       },
     })
-    .register(fastifyCompress, {
+      .register(fastifyCors, {
+        origin: process.env.FRONT_END_URL
+      })
+      .register(fastifyCompress, {
         logLevel: 'debug',
         brotliOptions: {
           params: {

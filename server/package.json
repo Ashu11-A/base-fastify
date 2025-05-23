@@ -7,7 +7,8 @@
   "type": "module",
   "private": "true",
   "scripts": {
-    "dev": "bun src/build.ts && bun --watch src/cluster.ts",
+    "dev": "bun src/build.ts && bun run --inspect=ws://localhost:6499 src/app.ts",
+    "start": "bun src/build.ts && bun --watch src/cluster.ts",
     "lint": "eslint -c eslint.config.mjs",
     "typeorm": "typeorm-ts-node-esm -d ./src/database/dataSource.ts",
     "schema:sync": "bun run typeorm -- schema:sync",
@@ -27,6 +28,7 @@
   "license": "MIT",
   "description": "",
   "devDependencies": {
+    "@faker-js/faker": "^9.8.0",
     "@types/bcrypt": "^5.0.2",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/socket.io": "^3.0.2",
@@ -63,6 +65,6 @@
     "storage": "workspace:../packages/storage",
     "sql.js": "^1.12.0",
     "typeorm": "^0.3.21",
-    "zod": "^3.24.2"
+    "zod": "catalog:"
   }
 }

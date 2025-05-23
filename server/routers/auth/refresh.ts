@@ -7,8 +7,8 @@ import jwt from 'jsonwebtoken'
 import moment from 'moment'
 
 /**
- * Retorna as opções para configuração dos cookies
- * @param expirationDate Data de expiração do cookie
+ * Returns cookie configuration options
+ * @param expirationDate Cookie expiration date
  */
 const getCookieOptions = (expirationDate: Date) => ({
   path: '/',
@@ -19,8 +19,8 @@ const getCookieOptions = (expirationDate: Date) => ({
 })
 
 export default new Router({
-  name: 'refresh',
-  description: 'Creates new access and refresh tokens',
+  name: 'Token Refresh',
+  description: 'Generate new access and refresh tokens using a valid refresh token',
   authenticate: false,
   methods: {
     async post({ reply, request }) {
@@ -30,7 +30,7 @@ export default new Router({
       const tokenSecret = process.env.JWT_TOKEN
       if (!tokenSecret) return reply.status(422).send({ message: 'JWT_TOKEN is undefined!' })
   
-      const refreshTokenCookie = request.cookies['Refresh']?.replaceAll('Refresh', '').trim()
+      const refreshTokenCookie = request.cookies['Refresh']?.replaceAll('Refresh', '').trim() ?? request.headers.authorization?.replaceAll('Refresh', '').trim()
       if (!refreshTokenCookie)
         return reply.status(422).send({ message: 'Refresh token cookie is undefined' })
   

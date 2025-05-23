@@ -1,4 +1,4 @@
-import { Between, type FindOptionsWhere, type ObjectLiteral, Repository } from 'typeorm'
+import { Between, type FindOptionsRelations, type FindOptionsWhere, type ObjectLiteral, Repository, type FindOptionsOrder } from 'typeorm'
 import { addYears, subYears, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfHour, endOfHour } from 'date-fns'
 import { z } from 'zod'
 
@@ -26,21 +26,26 @@ export const paginateSchema = z.object({
     return !isNaN(date.getTime())
   }, { message: 'Invalid date format for day' }),
 })
+export const paginateQuery = ['page', 'pageSize', 'interval', 'day'] as const
  
-export async function paginate<Additional extends ObjectLiteral, T extends ObjectLiteral>({
+export async function paginate<T extends ObjectLiteral>({
   repository,
   page,
   pageSize,
   interval,
+  relations,
+  order,
   day,
   ...args
 }: {
     repository: Repository<T>
     page: number
     pageSize: number
-    interval: 'month' | 'day' | 'hour' | 'none'
+    interval?: 'month' | 'day' | 'hour' | 'none'
     day?: string
-  } & FindOptionsWhere<T> & Additional
+    relations?: FindOptionsRelations<T>
+    order?: FindOptionsOrder<T>
+  } & FindOptionsWhere<T>
 ) {
   const targetDate = day ? new Date(day) : new Date()
 
@@ -69,15 +74,31 @@ export async function paginate<Additional extends ObjectLiteral, T extends Objec
     ...args
   }
 
-  const relations = repository.metadata.relations
-  // Para evitar o envio do password do usuário
-    .filter((relation) => relation.propertyName !== 'user')
-    .map((relation) => relation.propertyName)
+  // relations defaults from metadata
+  const defaultRelations = repository.metadata.relations
+    .map(rel => rel.propertyName)
+
+  // merge defaultRelations with provided relations
+  let mergedRelations: FindOptionsRelations<T> | string[]
+
+  if (relations) {
+    if (Array.isArray(relations)) {
+      mergedRelations = Array.from(new Set([...defaultRelations, ...relations]))
+    } else {
+      // convert defaultRelations to object tree
+      const defaultsTree = defaultRelations.reduce((acc, rel) => ({ ...acc, [rel]: true }), {} as Record<string, any>)
+      mergedRelations = { ...defaultsTree, ...relations }
+    }
+  } else {
+    mergedRelations = defaultRelations
+  }
+
   const [data, total] = await repository.findAndCount({
     where: whereCondition,
-    relations,
+    relations: mergedRelations,
     skip: (page - 1) * pageSize,
     take: pageSize,
+    order
   })
 
   return {

@@ -1,5 +1,6 @@
 import { Router } from '@/controllers/router.js'
-import { Role, User } from '@/database/entity/User.js'
+import { User } from '@/database/entity/User'
+import { Role } from '@/database/enums'
 import { nanoid } from 'nanoid'
 import z from 'zod'
 
@@ -13,8 +14,8 @@ export default new Router({
       password: z.string().min(8).max(30)
     })
   },
-  name: 'UserRegistration',
-  description: 'Handles new user registration, including validation and secure password storage',
+  name: 'User Registration',
+  description: 'Register a new user account with validation and secure password storage',
   methods: {
     async post({ reply, schema }) {
       const existUser = await User.findOneBy({ email: schema.email })

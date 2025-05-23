@@ -7,9 +7,8 @@
   "type": "module",
   "devDependencies": {
     "@types/axios": "^0.14.4",
-    "@types/bun": "latest",
     "server": "workspace:../server",
-    "zod": "^3.24.2"
+    "zod": "catalog:"
   },
   "peerDependencies": {
     "typescript": "^5.8.2"

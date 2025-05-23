@@ -1,13 +1,17 @@
 {
   "name": "base-fastify",
   "type": "module",
-  "workspaces": ["server", "packages/*"],
+  "workspaces": {
+    "packages": ["server", "packages/*"],
+    "catalog": {
+      "zod": "^3.24.2"
+    }
+  },
   "scripts": {
     "dev": "cd server && bun run dev"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "autocannon": "^8.0.0"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
