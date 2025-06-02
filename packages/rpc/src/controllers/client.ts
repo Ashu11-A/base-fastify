@@ -1,9 +1,9 @@
 import type { AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios, { AxiosError } from 'axios'
-import { CodesError, type ErrorData, type SucessData, type TReply } from 'server'
-import { ZodError } from 'zod'
+import { CodesError, CodesSuccess, type ErrorData, type SucessData, type TReply } from 'server'
 import { ErrorResponse, SuccessResponse, type SuccessResponseOptions } from '../app'
 import { ZodResponse } from '../responders/zod'
+import { ZodError } from 'zod'
 
 function isErrorStatus(status: number): status is typeof CodesError[number] {
   return CodesError.includes(status as typeof CodesError[number])

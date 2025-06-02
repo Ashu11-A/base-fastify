@@ -1,6 +1,6 @@
 import { Response } from './base'
 
-type MetadataList = {
+export type MetadataList = {
   total: number
   currentPage: number
   totalPages: number

@@ -7,6 +7,7 @@
   "type": "module",
   "devDependencies": {
     "@types/axios": "^0.14.4",
+    "@types/bun": "latest",
     "server": "workspace:../server",
     "zod": "catalog:"
   },
