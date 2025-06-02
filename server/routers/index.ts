@@ -10,7 +10,7 @@ export default new Router({
     })
   },
   methods: {
-    post({ reply, request, schema }) {
+    post({ reply }) {
       reply.setCookie('test', 'test')
       return reply.code(200).send({ message: 'hello world', data: {} })
     }

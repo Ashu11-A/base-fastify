@@ -1,8 +1,8 @@
-import { Router } from "@/controllers/router";
-import { User } from "@/database/entity/User";
-import { Role } from "@/database/enums";
-import { nanoid } from "nanoid";
-import { z } from "zod";
+import { Router } from '@/controllers/router'
+import { User } from '@/database/entity/User'
+import { Role } from '@/database/enums'
+import { nanoid } from 'nanoid'
+import { z } from 'zod'
 
 export default new Router({
   name: 'Create User',

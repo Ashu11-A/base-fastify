@@ -1,36 +1,36 @@
-import { User } from "@/database/entity/User"
-import { Role } from "@/database/enums"
-import { isDev } from "@/utils/dev"
-import { faker } from "@faker-js/faker"
-import { nanoid } from "nanoid"
+import { User } from '@/database/entity/User'
+import { Role } from '@/database/enums'
+import { isDev } from '@/utils/dev'
+import { faker } from '@faker-js/faker'
+import { nanoid } from 'nanoid'
 
 if (isDev) {
 
-  let admim = await User.findOneBy({ email: "admin@admin.com" })
+  let admim = await User.findOneBy({ email: 'admin@admin.com' })
   if (!admim) {
     admim = await (await User.create({
-      name: "Matheus",
-      username: "Ashu",
-      email: "admin@admin.com",
-      language: "pt-BR",
+      name: 'Matheus',
+      username: 'Ashu',
+      email: 'admin@admin.com',
+      language: 'pt-BR',
       uuid: nanoid(),
       role: Role.Administrator
     })
-      .setPassword("admin1234"))
+      .setPassword('admin1234'))
       .save()
   }
 
-  let testUser = await User.findOneBy({ email: "user@user.com" })
+  let testUser = await User.findOneBy({ email: 'user@user.com' })
   if (!testUser) {
     testUser = await (await User.create({
-      name: "User Teste",
-      username: "user",
-      email: "user@user.com",
-      language: "pt-BR",
+      name: 'User Teste',
+      username: 'user',
+      email: 'user@user.com',
+      language: 'pt-BR',
       uuid: nanoid(),
       role: Role.User,
     })
-      .setPassword("user1234"))
+      .setPassword('user1234'))
       .save()
   }
 
@@ -51,7 +51,7 @@ if (isDev) {
       name: faker.person.fullName(),
       username: faker.internet.username().toLowerCase(),
       email: faker.internet.email().toLowerCase(),
-      language: faker.helpers.arrayElement(["pt-BR", "en-US"]),
+      language: faker.helpers.arrayElement(['pt-BR', 'en-US']),
       role: Role.User
     }))
 
@@ -66,7 +66,7 @@ if (isDev) {
           uuid: nanoid(),
           role: u.role,
         })
-          .setPassword("password123"))
+          .setPassword('password123'))
           .save()
       }
     }

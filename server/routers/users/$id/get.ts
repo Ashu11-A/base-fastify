@@ -1,6 +1,6 @@
-import { Router } from "@/controllers/router";
-import { User } from "@/database/entity/User";
-import { Role } from "@/database/enums";
+import { Router } from '@/controllers/router'
+import { User } from '@/database/entity/User'
+import { Role } from '@/database/enums'
 
 export default new Router({
   name: 'Get User',

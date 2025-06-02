@@ -1,7 +1,7 @@
-import { Router } from "@/controllers/router";
-import { User } from "@/database/entity/User";
-import { Role } from "@/database/enums";
-import { z } from "zod";
+import { Router } from '@/controllers/router'
+import { User } from '@/database/entity/User'
+import { Role } from '@/database/enums'
+import { z } from 'zod'
 
 export default new Router({
   name: 'Edit User',

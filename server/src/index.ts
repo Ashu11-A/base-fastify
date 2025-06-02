@@ -15,5 +15,4 @@ export const storage = process.env.STORAGE_TYPE === 'memory'
     storagePath: join(cwd, process.env.LOCAL_STORAGE_PATH ?? 'storage')
   })
 
-
 export const baseUrl = (process.env.BACK_END_URL ?? `http://localhost:${process.env.PORT}`)

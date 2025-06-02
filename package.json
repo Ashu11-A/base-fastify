@@ -2,7 +2,7 @@
   "name": "base-fastify",
   "type": "module",
   "workspaces": {
-    "packages": ["server", "packages/*"],
+    "packages": ["server", "packages/*", "client"],
     "catalog": {
       "zod": "^3.24.2"
     }

@@ -1,5 +1,5 @@
-import { Router } from "@/controllers/router";
-import { User } from "@/database/entity/User";
+import { Router } from '@/controllers/router'
+import { User } from '@/database/entity/User'
 
 export default new Router({
   name: 'Get User Profile',
