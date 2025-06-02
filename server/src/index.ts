@@ -1,10 +1,19 @@
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { LocalStorage, MemoryStorage } from 'storage'
+import { fileURLToPath } from 'url'
 
-const cwd = import.meta.filename.endsWith('.ts') ? join(process.cwd(), '../') : process.cwd()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+
+const cwd = import.meta.filename.endsWith('.ts')
+  ? join(__dirname, '../')
+  : process.cwd()
 
 export const storage = process.env.STORAGE_TYPE === 'memory'
   ? new MemoryStorage()
   : new LocalStorage({
-    storagePath: process.env.LOCAL_STORAGE_PATH ?? join(cwd, 'storage')
+    storagePath: join(cwd, process.env.LOCAL_STORAGE_PATH ?? 'storage')
   })
+
+
+export const baseUrl = (process.env.BACK_END_URL ?? `http://localhost:${process.env.PORT}`)

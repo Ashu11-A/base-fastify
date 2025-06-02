@@ -53,7 +53,7 @@ export class Fastify {
       .register(fastifyMultipart, {
         limits: {
           fileSize: 1024 * 1024 * 50 // 50 Mb
-        }
+        },
       })
       .register(fastifyCookie, {
         secret: cookieToken,

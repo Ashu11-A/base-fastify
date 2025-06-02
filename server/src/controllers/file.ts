@@ -20,7 +20,7 @@ export class Multipart {
     return files
   }
   
-  async getSingle(): Promise<File | null> {
+  async getSingle(): Promise<{ file: File, mimeType: string } | null> {
     const fileData = await this.request.file()
     if (!fileData) return null
 
@@ -31,6 +31,6 @@ export class Multipart {
 
     const buffer = Buffer.concat(chunks)
     const blob = new Blob([buffer])
-    return new File([blob], filename, { type })
+    return { file: new File([blob], filename, { type }), mimeType: type }
   }
 }

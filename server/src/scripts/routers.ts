@@ -1,13 +1,13 @@
-import { routers } from "@/build/routers"
-import { authenticator } from "@/controllers/auth"
-import { Fastify } from "@/controllers/fastify"
-import { MethodType, type GenericRouter, type ReplyKeys, type TypedReply, type MethodKeys, type SchemaDynamic } from "@/types/router"
-import { formatPath } from "@/utils/path"
-import chalk from "chalk"
-import type { FastifyReply, FastifyRequest, RouteShorthandOptions } from "fastify"
-import { glob } from "glob"
-import { dirname, join } from "path"
-import { fileURLToPath } from "url"
+import { authenticator } from '@/controllers/auth'
+import { Fastify } from '@/controllers/fastify'
+import { MethodType, type GenericRouter, type MethodKeys, type ReplyKeys, type SchemaDynamic, type TypedReply } from '@/types/router'
+import { formatPath } from '@/utils/path'
+import chalk from 'chalk'
+import type { FastifyReply, FastifyRequest, RouteShorthandOptions } from 'fastify'
+import { glob } from 'glob'
+import { dirname, join } from 'path'
+import routers from 'routers'
+import { fileURLToPath } from 'url'
 
 export async function registerRouter () {
   if (Fastify.server === undefined) throw new Error('Server not configured!')
@@ -16,24 +16,24 @@ export async function registerRouter () {
   const routersP = isPKG
     ? routers
     : await (async () => {
-    const path = join(import.meta.dirname, '../../routers')
-    const files = await glob('**/*.ts', { cwd: path })
-    const routers: GenericRouter[] = []
+      const path = join(import.meta.dirname, '../../routers')
+      const files = await glob('**/*.ts', { cwd: path })
+      const routers: GenericRouter[] = []
 
-    for (const file of files) {
-      const filePath = join(path, file)
-      const { default: router } = await import(filePath) as { default: GenericRouter }
+      for (const file of files) {
+        const filePath = join(path, file)
+        const { default: router } = await import(filePath) as { default: GenericRouter }
 
-      if (router === undefined || router?.name === undefined) {
-        console.log(chalk.red(`Put export default in the route: ${filePath}`))
-        continue
+        if (router === undefined || router?.name === undefined) {
+          console.log(chalk.red(`Put export default in the route: ${filePath}`))
+          continue
+        }
+        router.path = formatPath(router?.path ?? file)
+        routers.push(router)
       }
-      router.path = formatPath(router?.path ?? file)
-      routers.push(router)
-    }
 
-    return routers
-  })()
+      return routers
+    })()
 
   const routerArray = Array.isArray(routersP) ? routersP : Object.values(routersP)
 

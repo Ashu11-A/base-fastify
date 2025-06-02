@@ -1,5 +1,5 @@
-import { Between, type FindOptionsRelations, type FindOptionsWhere, type ObjectLiteral, Repository, type FindOptionsOrder } from 'typeorm'
-import { addYears, subYears, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfHour, endOfHour } from 'date-fns'
+import { addYears, endOfDay, endOfHour, endOfMonth, startOfDay, startOfHour, startOfMonth, subYears } from 'date-fns'
+import { Between, Repository, type FindOptionsOrder, type FindOptionsRelations, type FindOptionsWhere, type ObjectLiteral } from 'typeorm'
 import { z } from 'zod'
 
 export const AfterDate = (date: Date) => Between(date, addYears(date, 100))
@@ -25,8 +25,11 @@ export const paginateSchema = z.object({
     const date = new Date(value)
     return !isNaN(date.getTime())
   }, { message: 'Invalid date format for day' }),
+
+  orderBy: z.string().optional(),
+  orderDirection: z.enum(['ASC', 'DESC']).optional().default('DESC'),
 })
-export const paginateQuery = ['page', 'pageSize', 'interval', 'day'] as const
+export const paginateQuery = ['page', 'pageSize', 'interval', 'day', 'orderBy', 'orderDirection'] as const
  
 export async function paginate<T extends ObjectLiteral>({
   repository,
@@ -35,6 +38,8 @@ export async function paginate<T extends ObjectLiteral>({
   interval,
   relations,
   order,
+  orderBy,
+  orderDirection = 'DESC',
   day,
   ...args
 }: {
@@ -45,6 +50,8 @@ export async function paginate<T extends ObjectLiteral>({
     day?: string
     relations?: FindOptionsRelations<T>
     order?: FindOptionsOrder<T>
+    orderBy?: string
+    orderDirection?: 'ASC' | 'DESC'
   } & FindOptionsWhere<T>
 ) {
   const targetDate = day ? new Date(day) : new Date()
@@ -86,19 +93,27 @@ export async function paginate<T extends ObjectLiteral>({
       mergedRelations = Array.from(new Set([...defaultRelations, ...relations]))
     } else {
       // convert defaultRelations to object tree
-      const defaultsTree = defaultRelations.reduce((acc, rel) => ({ ...acc, [rel]: true }), {} as Record<string, any>)
+      const defaultsTree = defaultRelations.reduce((acc, rel) => ({ ...acc, [rel]: true }), {} as Record<string, boolean>)
       mergedRelations = { ...defaultsTree, ...relations }
     }
   } else {
     mergedRelations = defaultRelations
   }
 
+  console.log(mergedRelations)
+
+  // Configurar ordenação
+  const finalOrder = {
+    ...(order || {}),
+    ...(orderBy ? { [orderBy]: orderDirection } : {})
+  } as FindOptionsOrder<T>
+
   const [data, total] = await repository.findAndCount({
     where: whereCondition,
     relations: mergedRelations,
     skip: (page - 1) * pageSize,
     take: pageSize,
-    order
+    order: finalOrder
   })
 
   return {
